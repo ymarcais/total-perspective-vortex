@@ -6,3 +6,6 @@ This subject aims to create a brain computer interface based on electroencephalo
   #Dimension Reduction
     - Correlation
     -  χ² (Khi²)
+  #Pipeline object scikit-learn
+
+  #Data stream classification in real time
