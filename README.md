@@ -3,7 +3,10 @@ This subject aims to create a brain computer interface based on electroencephalo
 
   #environment
     - conda activate tpv
-    
+    - numpy
+    - pandas
+    - python >= 3.10.12
+    - mne
 
   #Paring and filtering
   
