@@ -7,6 +7,11 @@ This subject aims to create a brain computer interface based on electroencephalo
     - pandas
     - python >= 3.10.12
     - mne
+  #Data
+    - experimental protocol
+        https://physionet.org/content/eegmmidb/1.0.0/
+    - loading data
+  
 
   #Paring and filtering
   
