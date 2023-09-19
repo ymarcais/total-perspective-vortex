@@ -11,6 +11,7 @@
         https://physionet.org/content/eegmmidb/1.0.0/
     - loading data  
     <img src="/mnt/nfs/homes/ymarcais/sgoinfre/total-perspective-vortex/png/raw_sample_S001.png" alt="Alt text" title="Battle ship" style="display: inline-block; max-width: 20px">
+    
 
   #Paring and filtering
   
