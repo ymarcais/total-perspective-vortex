@@ -1,0 +1,8 @@
+#conda install --file requirements.txt
+
+numpy
+pandas
+mne!=0
+matplotlib
+
+
