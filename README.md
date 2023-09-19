@@ -13,7 +13,7 @@
     <img src="./png/raw_sample_S001.png" alt="Alt text" title="Battle ship" style="display: inline-block; max-width: 20px">
     
 
-  #Paring and filtering
+  #Parsing and filtering
   
   #Dimension Reduction  
     - Correlation
