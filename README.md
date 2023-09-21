@@ -14,6 +14,8 @@
     
 
   #Parsing and filtering
+  Mapping
+    <img src="./png/ICA_components.png" alt="Alt text" title="Battle ship" style="display: inline-block; max-width: 20px">
   
   #Dimension Reduction  
     - Correlation
