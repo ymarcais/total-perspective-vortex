@@ -18,10 +18,10 @@
     <img src="./png/ICA_components.png" alt="Alt text" title="Battle ship" style="display: inline-block; max-width: 20px">
   - ica.fit() in MNE
     - whitening
-      -     Covariance Matrix Estimation: the covariance matrix of the observed data is estimated. This matrix describes the statistical relationships (covariances) between different channels or features.
+      -     Covariance Matrix Estimation: the covariance matrix of the observed data is estimated. This matrix describes \n the statistical relationships (covariances) between different channels or features.
       -     Whitening Transformation: The estimated covariance matrix is used to perform a transformation on the data that "whitens" it. Whitening is a linear transformation that makes the transformed data have an identity covariance matrix, i.e., the transformed data has uncorrelated components and unit variance. This is often achieved using methods like Cholesky decomposition or the square root of the inverse of the covariance matrix.
 
-    Mathematically, if XXX is the original data matrix, and WWW is the whitening transformation matrix, the whitened data XwhitenedX_{\text{whitened}}Xwhitened​ is calculated as Xwhitened=XWX_{\text{whitened}} = XWXwhitened​=XW, where XwhitenedX_{\text{whitened}}Xwhitened​ has an identity covariance matrix.
+    
 
     Cov(Xwhitened)=I\text{Cov}(X_{\text{whitened}}) = \text{I}Cov(Xwhitened​)=I (Identity matrix)
   
