@@ -27,6 +27,8 @@
             and unit variance. This is often achieved using methods like Cholesky decomposition or the
             square root of the inverse of the covariance matrix.
 
+    - Passing the n_components largest-variance components to the ICA algorithm to obtain the unmixing matrix 
+
   #Dimension Reduction  
     - Correlation
     -  χ² (Khi²)
