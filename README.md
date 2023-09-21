@@ -17,6 +17,8 @@
   -  Mapping
     <img src="./png/ICA_components.png" alt="Alt text" title="Battle ship" style="display: inline-block; max-width: 20px">
   - ica.fit() in MNE
+    ICA aims to find a transformation that maximizes the statistical independence of the components
+    derived from the mixed observed signals
     - whitening
       -     Covariance Matrix Estimation: the covariance matrix of the observed data is estimated.
             This matrix describes the statistical relationships (covariances) between different channels
