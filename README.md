@@ -15,7 +15,7 @@
 
   #Parsing and filtering
   -  Mapping
-    <img src="./png/ICA_components.png" alt="Alt text" title="Battle ship" style="display: inline-block; max-width: 20px">
+    
 
   - Power Spectral Density - PSD
 
@@ -48,6 +48,7 @@
             data have an identity covariance matrix, i.e., the transformed data has uncorrelated components
             and unit variance. This is often achieved using methods like Cholesky decomposition or the
             square root of the inverse of the covariance matrix.
+    <img src="./png/ICA_components.png" alt="Alt text" title="Battle ship" style="display: inline-block; max-width: 20px">
         
     - ica.fit() in MNE
       
