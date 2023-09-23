@@ -17,6 +17,9 @@
   -  Mapping
     <img src="./png/ICA_components.png" alt="Alt text" title="Battle ship" style="display: inline-block; max-width: 20px">
   - ica.fit() in MNE
+    ICA_components_after_frequency_fourrier_transformation:
+          Frequency Fourrier Transformation transform data to frequency domqine from time dommaine
+    <img src="./png/ICA_components_after_frequency_fourrier_transformation.png" alt="Alt text" title="Battle ship" style="display: inline-block; max-width: 20px">
   - Power Spectral Density - PSD
 
         Channels with stronger PSD often indicate higher activity in certain frequency bands.
