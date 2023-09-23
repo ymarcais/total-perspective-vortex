@@ -33,7 +33,8 @@
         In PCA, the goal is often to reduce the dimensionality of the data while retaining as much relevant
         information as possible. When a specific number of components are choosen (e.g., 2 components for a 2D scatter plot),
         it reduce the data to that lower-dimensional space.
-       <img src="./png/PCA_after_PSD.png" alt="Alt text" title="Battle ship" style="display: inline-block; max-width: 20px">
+        
+  <img src="./png/PCA_after_PSD.png" alt="Alt text" title="Battle ship" style="display: inline-block; max-width: 20px">
 
   - ICA :
           ICA aims to find a transformation that maximizes the statistical independence of the components
