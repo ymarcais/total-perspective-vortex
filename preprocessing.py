@@ -3,6 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import mne
 import os
+from sklearn.preprocessing import StandardScaler
 import sklearn
 
 #print(sklearn.__version__)
@@ -58,6 +59,17 @@ class Preprocessing:
 		raw.set_montage(montage)
 		return raw
 	
+	def magnitude_normaliz(self, raw):
+		data = raw.get_data()
+		transposed_data = data.T
+
+		scaler = StandardScaler()
+		normalized_data = scaler.fit_transform(transposed_data)
+
+		normalized_data = normalized_data.T
+		normalized_raw = mne.io.RawArray(normalized_data, raw.info)
+		return normalized_raw
+	
 	#check NaN
 	def distribution_NaN(self, dataset):
 		count_NaN = pd.isna(dataset).sum()
@@ -83,7 +95,8 @@ class Preprocessing:
 		data = raw.get_data()
 		data_fft = np.fft.fft(data, axis=1)
 		data_fft_abs = np.abs(data_fft)
-		return mne.io.RawArray(data_fft_abs, raw.info), data_fft
+		raw_fft_abs = mne.io.RawArray(data_fft_abs, raw.info)
+		return raw_fft_abs, data_fft
 	
 
 	#get statistically independent underlying signals 
@@ -101,13 +114,14 @@ class Preprocessing:
 		freq= freq[:24400]
 		print("freq shape", freq.shape)
 		return psd_transp, freq
-	
+
+	#select and plot psd
 	def plot_psd(self, psd, freq, fft_result):
 		data_shape = fft_result.get_data().shape
 		num_channels = data_shape[0]
 		plt.figure(figsize=(10, 5))
 		for i in range(num_channels):
-			if psd[i].max() >= 0.005:
+			if psd[i].max() >= 0.01:
 				plt.scatter(freq, psd[i], label=f'Channel {i+1}', marker='o')
 		plt.xlabel('Frequency (Hz)')
 		plt.ylabel('Power Spectral Density (PSD)')
@@ -115,7 +129,9 @@ class Preprocessing:
 		plt.legend()
 		plt.grid(True)
 		plt.show()
+
 	
+	#mother
 	def preprocessing_(self, i, j):
 		lower_passband = 1
 		higher_passband = 20
@@ -131,23 +147,26 @@ class Preprocessing:
 
 		filtered = self.filering(raw, lower_passband, higher_passband)
 		data1 = self.resampling(filtered)
-		fft_result, data_fft = self.frequency_fourrier(data1)
+		raw_fft_result, data_fft = self.frequency_fourrier(data1)
 		psd, freq = self.psd(data_fft)
-		self.plot_psd(psd, freq, fft_result)
+		self.plot_psd(psd, freq, raw_fft_result)
 
-		ica = self.eog_artefacts()
+		'''normalized_data_fft = self.magnitude_normaliz(data_fft)
+		data = normalized_data_fft.get_data()'''
+
+		'''ica = self.eog_artefacts()
 		ica.fit(fft_result)
-		ica.plot_components(picks=None, ch_type='eeg', colorbar=True, outlines="head", sphere='auto')
+		ica.plot_components(picks=None, ch_type='eeg', colorbar=True, outlines="head", sphere='auto')'''
+		return data_fft
 
-	
+
 def main():
-	i = 6
-	j = 1
+	#i = 6
+	#j = 1
 
 	pp = Preprocessing()
-	pp.preprocessing_(i, j)
+	raw_fft_result = pp.preprocessing_(i, j)
 	
-
 
 if __name__ == "__main__":
 	main()
