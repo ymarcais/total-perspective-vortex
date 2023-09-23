@@ -19,8 +19,9 @@
   - ica.fit() in MNE
   - Power Spectral Density - PSD
 
-        Channels with stronger PSD often indicate higher activity in certain frequency bands. These channels may correspond
-        to regions of interest or brain areas that are more active during the recording.
+        Channels with stronger PSD often indicate higher activity in certain frequency bands.
+        These channels may correspond to regions of interest or brain areas that are more
+        active during the recording.
     <img src="./png/power_spectral_density.png" alt="Alt text" title="Battle ship" style="display: inline-block; max-width: 20px">
    
     ICA aims to find a transformation that maximizes the statistical independence of the components
