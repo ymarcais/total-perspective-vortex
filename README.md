@@ -15,7 +15,8 @@
 
   #Parsing and filtering
   -  Mapping
-    
+  -  Filtering to reduce noise and artifacts (blinkings, heartbeats...)
+  -  Frequency Fourrier Transformation (fft) to transform to frequency domaine from time domaine    
 
   - Power Spectral Density - PSD
 
@@ -24,7 +25,6 @@
         active during the recording.
     <img src="./png/power_spectral_density.png" alt="Alt text" title="Battle ship" style="display: inline-block; max-width: 20px">
    
-
 
   #Dimension Reduction  
     - PCA :
