@@ -5,6 +5,7 @@ import mne
 import os
 from sklearn.preprocessing import StandardScaler
 import sklearn
+import pywt
 
 #print(sklearn.__version__)
 
@@ -29,6 +30,9 @@ class Preprocessing:
 		file_number = 'S' + str(i).zfill(3) + 'R' + str(j).zfill(2) + '.edf'
 		data_raw_path = os.path.join(base_url, directory_number, file_number)
 		raw = mne.io.read_raw_edf(data_raw_path, preload=True)
+		raw.annotations.onset[1:] += [0.001 * i for i in range(1, len(raw.annotations.onset))]
+		events, _ = mne.events_from_annotations(raw)
+		print("events:", events)
 		return raw
 
 	#Change channel mapping format
@@ -98,15 +102,10 @@ class Preprocessing:
 		raw_fft_abs = mne.io.RawArray(data_fft_abs, raw.info)
 		return raw_fft_abs, data_fft
 	
-
-	#get statistically independent underlying signals 
-	def eog_artefacts(self):
-		ica = mne.preprocessing.ICA(n_components=20, random_state=0)
-		return ica
 	
 	#PSD : how the power of a signal is distributed across different frequencies.
 	def psd(self, data_fft):
-		fs = 1000
+		fs = 80
 		psd = np.abs(data_fft)**2
 		psd_transp = psd.T
 		print("psd shape", psd.shape)
@@ -130,11 +129,17 @@ class Preprocessing:
 		plt.grid(True)
 		plt.show()
 
+	'''def wavelet_analysis(self, raw):
+		data = raw.get_data()
+		transformed_data = perform_wavelet_analysis(data)
+		transformed_raw = mne.io.RawArray(transformed_data, raw.info)
+		return transformed_raw'''
+
 	
 	#mother
 	def preprocessing_(self, i, j):
-		lower_passband = 1
-		higher_passband = 20
+		lower_passband = 30
+		higher_passband = 79.9
 		try:
 			raw = self.edf_load(i, j)
 		except FileNotFoundError as e:
@@ -142,6 +147,7 @@ class Preprocessing:
 			return
 		raw =  self.rename_existing_mapping(raw)
 		data = raw.get_data()
+
 		NaN = self.distribution_NaN(data)
 		print("NaN count: ", NaN)
 
@@ -155,14 +161,14 @@ class Preprocessing:
 		data = normalized_data_fft.get_data()'''
 
 		'''ica = self.eog_artefacts()
-		ica.fit(fft_result)
+		ica.fit(raw_fft_result)
 		ica.plot_components(picks=None, ch_type='eeg', colorbar=True, outlines="head", sphere='auto')'''
-		return data_fft
+		return data_fft, raw_fft_result
 
 
 def main():
-	#i = 6
-	#j = 1
+	i = 5
+	j = 1
 
 	pp = Preprocessing()
 	raw_fft_result = pp.preprocessing_(i, j)

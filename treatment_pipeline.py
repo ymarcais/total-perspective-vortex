@@ -1,13 +1,9 @@
-import pandas as pd
-import numpy as np
 import matplotlib.pyplot as plt
 import mne
-import os
 from preprocessing import Preprocessing
-#from preprocessing import raw_fft_result
 from sklearn.decomposition import PCA
-from sklearn.preprocessing import StandardScaler
-import sklearn
+from mne.preprocessing import ICA
+from mne.decoding import CSP
 
 class Treatment_pipeline():
 
@@ -15,9 +11,9 @@ class Treatment_pipeline():
 		self.pp = Preprocessing()
 
 	#principal component analysis
-	def cpa(self, i, j, num_pca_components):
-		data_fftt = self.pp.preprocessing_(i, j)
-		psd, freq = self.pp.psd(data_fftt)
+	def pca(self, i, j, num_pca_components):
+		data_fft, raw_fft_result= self.pp.preprocessing_(i, j)
+		psd, freq = self.pp.psd(data_fft)
 		'''data_fft = raw_fft_result.get_data()
 		data_fft_abs = np.abs(data_fft)'''
 		flattened_psd = psd.reshape(psd.shape[0], -1)
@@ -29,19 +25,46 @@ class Treatment_pipeline():
 		plt.ylabel('Principal Component 2')
 		plt.title('PCA after PSD')
 		plt.show()
-		return pca_result
+		return pca_result, raw_fft_result
+	
+	#get statistically independent underlying signals 
+	def eog_artefacts(self):
+		ica = mne.preprocessing.ICA(n_components=20, random_state=0)
+		return ica
+	
+	#fit ica from instance of Raw raw_fft_result
+	def ica_comp(self, raw_fft_result):
+			n_components = 30
+			ica = ICA(n_components=n_components)
+			ica_result = ica.fit(raw_fft_result)
+			return ica_result, n_components
+
+	#plot brain heads activity with a number of n_components 
+	def ica_plot(self, ica_result, n_components):
+		ica_result.plot_components(
+			picks=None, 
+			ch_type='eeg', 
+			colorbar=True, 
+			outlines="head", 
+			sphere='auto',
+			title= f'ICA reduction {n_components} components',
+								)
+	#def csp_comp(self, n_components=2, )
+	#Mother
+	def treatment_pipeline(self,i, j, num_pca_components):
+		pca_result, raw_fft_result = self.pca(i, j, num_pca_components)
+		ica_result, n_components = self.ica_comp(raw_fft_result)
+		self.ica_plot(ica_result, n_components)
+
 
 
 def main():
 	
-	i = 6
-	j = 1
+	i = 3
+	j = 3
 	tp = Treatment_pipeline()
 	num_pca_components = 2
-	tp.cpa(i, j, num_pca_components)
-
-	
-
+	tp.treatment_pipeline(i, j, num_pca_components)
 
 if __name__ == "__main__":
 	main()
