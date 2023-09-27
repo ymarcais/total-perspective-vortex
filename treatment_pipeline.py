@@ -12,7 +12,7 @@ class Treatment_pipeline():
 
 	#principal component analysis
 	def pca(self, i, j, num_pca_components):
-		data_fft, raw_fft_result= self.pp.preprocessing_(i, j)
+		data_fft, raw_fft_result, wavelet_raw= self.pp.preprocessing_(i, j)
 		psd, freq = self.pp.psd(data_fft)
 		'''data_fft = raw_fft_result.get_data()
 		data_fft_abs = np.abs(data_fft)'''
@@ -25,7 +25,7 @@ class Treatment_pipeline():
 		plt.ylabel('Principal Component 2')
 		plt.title('PCA after PSD')
 		plt.show()
-		return pca_result, raw_fft_result
+		return pca_result, raw_fft_result, wavelet_raw
 	
 	#get statistically independent underlying signals 
 	def eog_artefacts(self):
@@ -52,8 +52,8 @@ class Treatment_pipeline():
 	#def csp_comp(self, n_components=2, )
 	#Mother
 	def treatment_pipeline(self,i, j, num_pca_components):
-		pca_result, raw_fft_result = self.pca(i, j, num_pca_components)
-		ica_result, n_components = self.ica_comp(raw_fft_result)
+		pca_result, raw_fft_result, wavelet_raw = self.pca(i, j, num_pca_components)
+		ica_result, n_components = self.ica_comp(wavelet_raw)
 		self.ica_plot(ica_result, n_components)
 
 

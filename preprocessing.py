@@ -85,11 +85,11 @@ class Preprocessing:
 		filtered = raw.filter(lower_passband, higher_passband)
 		return filtered
 	
-	'''transform data into 100 Hz freaquency domaine
+	'''transform data into 80 Hz freaquency domaine
 	apply_function() is a method in MNE-Python used to apply a 
 	given function along a specified axis of the data'''
 	def resampling(self, raw):
-		return raw.resample(sfreq = 400)
+		return raw.resample(sfreq = 80)
 	
 
 	'''#frequency fourrier transform
@@ -129,11 +129,13 @@ class Preprocessing:
 		plt.grid(True)
 		plt.show()
 
-	'''def wavelet_analysis(self, raw):
+	def wavelet_analysis(self, raw):
 		data = raw.get_data()
-		transformed_data = perform_wavelet_analysis(data)
-		transformed_raw = mne.io.RawArray(transformed_data, raw.info)
-		return transformed_raw'''
+		wavelet = 'db1'
+		coeffs = pywt.wavedec(data, wavelet)
+		reconstructed_data = pywt.waverec(coeffs, wavelet)
+		wavelet_raw = mne.io.RawArray(reconstructed_data, raw.info)
+		return wavelet_raw
 
 	
 	#mother
@@ -151,8 +153,9 @@ class Preprocessing:
 		NaN = self.distribution_NaN(data)
 		print("NaN count: ", NaN)
 
-		filtered = self.filering(raw, lower_passband, higher_passband)
+		filtered= self.filering(raw, lower_passband, higher_passband)
 		data1 = self.resampling(filtered)
+		wavelet_raw = self.wavelet_analysis(filtered)
 		raw_fft_result, data_fft = self.frequency_fourrier(data1)
 		psd, freq = self.psd(data_fft)
 		self.plot_psd(psd, freq, raw_fft_result)
@@ -163,16 +166,15 @@ class Preprocessing:
 		'''ica = self.eog_artefacts()
 		ica.fit(raw_fft_result)
 		ica.plot_components(picks=None, ch_type='eeg', colorbar=True, outlines="head", sphere='auto')'''
-		return data_fft, raw_fft_result
+		return data_fft, raw_fft_result, wavelet_raw
 
 
 def main():
-	i = 5
-	j = 1
+	i = 1
+	j = 2
 
 	pp = Preprocessing()
 	raw_fft_result = pp.preprocessing_(i, j)
-	
 
 if __name__ == "__main__":
 	main()
