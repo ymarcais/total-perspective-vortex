@@ -49,6 +49,7 @@
             and unit variance. This is often achieved using methods like Cholesky decomposition or the
             square root of the inverse of the covariance matrix.
     <img src="./png/ICA_components.png" alt="Alt text" title="Battle ship" style="display: inline-block; max-width: 20px">
+    -  Implementation of my own ICA "my_ica"
         
     - ica.fit() in MNE
       
@@ -60,6 +61,7 @@
     - Passing the n_components largest-variance components to the ICA algorithm to obtain the unmixing matrix 
     - Correlation
     -  χ² (Khi²)
+    -  
   #Pipeline object scikit-learn
 
   #Data stream classification in real time
