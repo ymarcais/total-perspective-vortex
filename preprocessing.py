@@ -51,7 +51,7 @@ class Preprocessing:
 		ch_types = ['eeg'] * n_channels
 		info = mne.create_info(list(channel_mapping.values()), 1000, ch_types)
 		info = mne.pick_info(info, mne.pick_channels(info['ch_names'], include=list(channel_mapping.values())))
-		print("info", info)
+		#print("info", info)
 
 		for old_channel, new_channel_type in channel_mapping.items():
 			if old_channel in info['ch_names']:
@@ -100,6 +100,8 @@ class Preprocessing:
 		data_fft = np.fft.fft(data, axis=1)
 		data_fft_abs = np.abs(data_fft)
 		raw_fft_abs = mne.io.RawArray(data_fft_abs, raw.info)
+		raw_fft_abs.set_annotations(raw.annotations)
+		#print("raw_fft_abs info: ", len(raw_fft_abs.annotations))
 		return raw_fft_abs, data_fft
 	
 	
@@ -135,13 +137,21 @@ class Preprocessing:
 		coeffs = pywt.wavedec(data, wavelet)
 		reconstructed_data = pywt.waverec(coeffs, wavelet)
 		wavelet_raw = mne.io.RawArray(reconstructed_data, raw.info)
+		wavelet_raw.set_annotations(raw.annotations)
+		print("wavelet info: ", len(wavelet_raw.annotations))
 		return wavelet_raw
 
+	#get number of events
+	def num_events(self, raw):
+		annotations = raw.annotations
+		num_events = len(annotations)
+		print("AAAAA num events:", num_events)
+		return num_events
 	
 	#mother
 	def preprocessing_(self, i, j):
-		lower_passband = 30
-		higher_passband = 79.9
+		lower_passband = 0
+		higher_passband = 60
 		try:
 			raw = self.edf_load(i, j)
 		except FileNotFoundError as e:
@@ -152,6 +162,7 @@ class Preprocessing:
 
 		NaN = self.distribution_NaN(data)
 		print("NaN count: ", NaN)
+		self.num_events(raw)
 
 		filtered= self.filering(raw, lower_passband, higher_passband)
 		data1 = self.resampling(filtered)
