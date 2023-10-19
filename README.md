@@ -13,7 +13,7 @@
     <img src="./png/raw_sample_S001.png" alt="Alt text" title="Battle ship" style="display: inline-block; max-width: 20px">
     
 
-  #Parsing and filtering
+  #Parsing and filtering using tranformers && pipelines
   -  Mapping
   -  Filtering to reduce noise and artifacts (blinkings, heartbeats...)
   -  Frequency Fourrier Transformation (fft) to transform to frequency domaine from time domaine    
