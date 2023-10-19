@@ -1,0 +1,15 @@
+
+
+#pipeline
+dict(): create a dictorinary when not using {}
+listdir(): list all directories or files
+endswith(): check the end of a string
+mne.io.read_row_edf(): read edf files with mne keeping events...
+join(): concatenate a tupple or list using separtor. separator.join(list)
+append(): add to the end
+concatenate_raws():concatenate Raw objects
+mne.channels.make_standard_montage(): create a standardized electrode placement configuration for EEG
+mne.filter(a, b): filter frequencies below a and above b
+mne.events_from_annotations():  Extracts events based on the annotations present in the raw data. 
+                                It returns two main outputs: events, events_id
+mne.pick_types(): select channels or sensors of specific types from a given MNE Raw or Evoked object.

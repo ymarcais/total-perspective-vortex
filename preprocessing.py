@@ -32,7 +32,8 @@ class Preprocessing:
 		raw = mne.io.read_raw_edf(data_raw_path, preload=True)
 		raw.annotations.onset[1:] += [0.001 * i for i in range(1, len(raw.annotations.onset))]
 		events, _ = mne.events_from_annotations(raw)
-		print("events:", events)
+		#print("events:", events)
+		print("raw:", raw)
 		return raw
 
 	#Change channel mapping format

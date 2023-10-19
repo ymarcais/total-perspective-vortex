@@ -1,6 +1,6 @@
 import numpy as np
 
-class Ica:
+class My_ica:
 
 	def __init__(self) -> None:
 		pass
@@ -50,7 +50,7 @@ class Ica:
 	
 
 def main():
-	ica = Ica()
+	ica = My_ica()
 	max_iterations = 1000 
 
 if __name__ == "__main__":
