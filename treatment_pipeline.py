@@ -29,15 +29,16 @@ class Treatment_pipeline():
 	
 	#get statistically independent underlying signals 
 	def eog_artefacts(self):
-		ica = mne.preprocessing.ICA(n_components=5, random_state=0)
+		ica = mne.preprocessing.ICA(n_components=18, random_state=0)
 		return ica
 	
 	#fit ica from instance of Raw raw_fft_result
 	def ica_comp(self, raw_fft_result):
-			n_components = 5
 			random_seed = 42
-			ica = ICA(n_components=n_components, random_state=random_seed)
+			ica = ICA(n_components=0.95, random_state=random_seed)
 			ica_result = ica.fit(raw_fft_result)
+			n_components = ica.n_components_
+			print("n_components:", n_components)
 			return ica_result, n_components
 
 	#plot brain heads activity with a number of n_components 

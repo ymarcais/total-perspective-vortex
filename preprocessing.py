@@ -3,9 +3,13 @@ import numpy as np
 import matplotlib.pyplot as plt
 import mne
 import os
+from mne.io import concatenate_raws, read_raw_edf
 from sklearn.preprocessing import StandardScaler
 import sklearn
+from mne.datasets import eegbci
 import pywt
+from mne.channels import make_standard_montage
+
 
 #print(sklearn.__version__)
 
@@ -34,7 +38,24 @@ class Preprocessing:
 		events, _ = mne.events_from_annotations(raw)
 		#print("events:", events)
 		print("raw:", raw)
-		return raw
+		return raw, events
+	
+
+	event_ids=dict(T0=0, T1=1, T2=2)
+	runs = [[3, 4, 7, 8, 11, 12], [5, 6, 9, 10, 13, 14]]
+	subjects = list(range(1, 109))
+	for subject in subjects:
+		for run in runs:
+			raw_fnames = eegbci.load_data(subjects, run)
+			raw = concatenate_raws([read_raw_edf(f, preload=True) for f in raw_fnames])
+			
+			
+			
+			raw.standardize()
+			montage = make_standard_montage("standard_1005")
+			raw.set_montage(montage)
+
+
 
 	#Change channel mapping format
 	def rename_existing_mapping(self, raw):

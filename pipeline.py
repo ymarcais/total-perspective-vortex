@@ -35,6 +35,14 @@ class Pipeline:
 		self.higher_passband = 80
 
 	def preprocessing_numerical_pipeline(self):
+		''' Create a nunerical pipeline
+				frequence normalization
+				filter lower && uper bands
+				frequency fourrier transformation
+				wavelet analysis
+				get ica components reduction with 95% of variance
+				LDA'''
+		
 		numerical_pipeline = make_pipeline(Preprocessing().magnitude_normaliz(), 
 										   filter(self.lower_passband, self.higher_passband), 
 										   mne.resample(sfreq = 80),
@@ -43,17 +51,35 @@ class Pipeline:
 										   Treatment_pipeline().ica_comp(),
 										   LDA(),
 										   )
+		return numerical_pipeline
 
 
-	def preprocessing_categorical_pipeline():
+	def preprocessing_categorical_pipeline(self):
+		''' Create a pipeline on cathegorical data:
+				rename mapping
+				Check inputs
+				OneHotEcnoder gives converts categorical to digital matrix'''
+		
 		categorical_pipeline = make_pipeline(Preprocessing().rename_existing_mapping(),
 									   		SimpleImputer(strategy='most_frequent'),
 									   		OneHotEncoder)
+		return categorical_pipeline
 
 		
-		
+	def preprocessor_(self, numerical_features, categorical_features):
+		''' preprocessor is a transformer using to pipelines:
+				numerical pipelines
+				categorical pipelines'''
+		numerical_pipeline = self.preprocessing_numerical_pipeline()
+		categorical_pipeline = self.preprocessing_categorical_pipeline()
 		preprocessor = make_column_transformer((numerical_pipeline, numerical_features),
 											(categorical_pipeline, categorical_features))
+		return preprocessor
+	
+	
+	def model(self, numerical_features, categorical_features):
+		X, y = Preprocessing().edf_load()
+		preprocessor = self.preprocessor_(numerical_features, categorical_features)
 		model = make_pipeline(preprocessor, SGDClassifier)
 		model.fit(X, y)
 
