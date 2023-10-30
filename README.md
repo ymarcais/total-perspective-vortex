@@ -19,7 +19,7 @@
   -  Filtering to reduce noise and artifacts (blinkings, heartbeats...)
   -  Frequency Fourrier Transformation (fft) to transform to frequency domaine from time domaine    
 
-  - Power Spectral Density - PSD
+  - Power Spectral Density - PSD  
 
         Channels with stronger PSD often indicate higher activity in certain frequency bands.
         These channels may correspond to regions of interest or brain areas that are more
