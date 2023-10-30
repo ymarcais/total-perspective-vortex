@@ -17,7 +17,7 @@ from mne.channels import make_standard_montage
 class Preprocessing:
 
 	def __init__(self):
-		pass
+		self.event_ids=dict(T0=0, T1=1, T2=2)
 
 	#Change to capital letter the second string letter
 	def capitalize_letter_at_index(self, input_string, index):
@@ -28,33 +28,42 @@ class Preprocessing:
 
 	#- i and j will increment number of directorhy and number of file
 	#- will need double loop to open directories and files
-	def	edf_load(self, i, j ):
+	'''def	edf_load(self, i, j ):
 		base_url = 'physionet.org/files/eegmmidb/1.0.0/'
 		directory_number = 'S' + str(i).zfill(3)
 		file_number = 'S' + str(i).zfill(3) + 'R' + str(j).zfill(2) + '.edf'
 		data_raw_path = os.path.join(base_url, directory_number, file_number)
-		raw = mne.io.read_raw_edf(data_raw_path, preload=True)
+		
 		raw.annotations.onset[1:] += [0.001 * i for i in range(1, len(raw.annotations.onset))]
 		events, _ = mne.events_from_annotations(raw)
 		#print("events:", events)
 		print("raw:", raw)
-		return raw, events
+		return raw, events'''
 	
+	#  eegbci is a eeg dataset interface
+	def	edf_load(self, i, j ):
+		base_url = '/mnt/nfs/homes/ymarcais/sgoinfre/total-perspective-vortex/physionet.org/files/eegmmidb/1.0.0/S001/S001R01.edf'
+		runs = [[3, 4, 7, 8, 11, 12], [5, 6, 9, 10, 13, 14]]
+		#subjects = list(range(1, 110))
+		
+		#range2 for coding
+		subjects = list(range(1, 4))
+		all_raw_data =[]
+		raw = mne.io.read_raw_edf(base_url, preload=True) 
 
-	event_ids=dict(T0=0, T1=1, T2=2)
-	runs = [[3, 4, 7, 8, 11, 12], [5, 6, 9, 10, 13, 14]]
-	subjects = list(range(1, 109))
-	for subject in subjects:
-		for run in runs:
-			raw_fnames = eegbci.load_data(subjects, run)
-			raw = concatenate_raws([read_raw_edf(f, preload=True) for f in raw_fnames])
+		for subject in subjects:
+			for run in runs:
+				raw_fnames = eegbci.load_data(subject, run)
+				raw_fnames = [str(f) for f in raw_fnames]
+				
+				raw = mne.io.concatenate_raws([read_raw_edf(f, preload=True) for f in raw_fnames])
+				all_raw_data.append(raw)
+		return all_raw_data
+				
 			
-			
-			
-			raw.standardize()
+		'''	raw.standardize()
 			montage = make_standard_montage("standard_1005")
-			raw.set_montage(montage)
-
+			raw.set_montage(montage)'''
 
 
 	#Change channel mapping format
@@ -85,6 +94,7 @@ class Preprocessing:
 		raw.set_montage(montage)
 		return raw
 	
+	
 	def magnitude_normaliz(self, raw):
 		data = raw.get_data()
 		transposed_data = data.T
@@ -95,6 +105,7 @@ class Preprocessing:
 		normalized_data = normalized_data.T
 		normalized_raw = mne.io.RawArray(normalized_data, raw.info)
 		return normalized_raw
+	
 	
 	#check NaN
 	def distribution_NaN(self, dataset):
@@ -137,6 +148,7 @@ class Preprocessing:
 		freq= freq[:24400]
 		print("freq shape", freq.shape)
 		return psd_transp, freq
+	
 
 	#select and plot psd
 	def plot_psd(self, psd, freq, fft_result):
@@ -152,6 +164,7 @@ class Preprocessing:
 		plt.legend()
 		plt.grid(True)
 		plt.show()
+		
 
 	def wavelet_analysis(self, raw):
 		data = raw.get_data()
@@ -174,31 +187,36 @@ class Preprocessing:
 	def preprocessing_(self, i, j):
 		lower_passband = 0
 		higher_passband = 60
+		results = [] 
 		try:
-			raw = self.edf_load(i, j)
+			raw_list = self.edf_load(i, j)
 		except FileNotFoundError as e:
 			print(str(e))
 			return
-		raw =  self.rename_existing_mapping(raw)
-		data = raw.get_data()
+		for raw in raw_list:
+			raw =  self.rename_existing_mapping(raw)
+			data = raw.get_data()
 
-		NaN = self.distribution_NaN(data)
-		print("NaN count: ", NaN)
-		self.num_events(raw)
+			NaN = self.distribution_NaN(data)
+			print("NaN count: ", NaN)
+			self.num_events(raw)
 
-		filtered= self.filering(raw, lower_passband, higher_passband)
-		data1 = self.resampling(filtered)
-		wavelet_raw = self.wavelet_analysis(filtered)
-		raw_fft_result, data_fft = self.frequency_fourrier(data1)
-		psd, freq = self.psd(data_fft)
-		self.plot_psd(psd, freq, raw_fft_result)
+			filtered= self.filering(raw, lower_passband, higher_passband)
+			data1 = self.resampling(filtered)
+			wavelet_raw = self.wavelet_analysis(filtered)
+			raw_fft_result, data_fft = self.frequency_fourrier(data1)
+			psd, freq = self.psd(data_fft)
+			self.plot_psd(psd, freq, raw_fft_result)
 
-		'''normalized_data_fft = self.magnitude_normaliz(data_fft)
-		data = normalized_data_fft.get_data()'''
+			result = (data_fft, raw_fft_result, wavelet_raw)
+			results.append(result)
 
-		'''ica = self.eog_artefacts()
-		ica.fit(raw_fft_result)
-		ica.plot_components(picks=None, ch_type='eeg', colorbar=True, outlines="head", sphere='auto')'''
+			'''normalized_data_fft = self.magnitude_normaliz(data_fft)
+			data = normalized_data_fft.get_data()'''
+
+			'''ica = self.eog_artefacts()
+			ica.fit(raw_fft_result)
+			ica.plot_components(picks=None, ch_type='eeg', colorbar=True, outlines="head", sphere='auto')'''
 		return data_fft, raw_fft_result, wavelet_raw
 
 

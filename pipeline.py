@@ -27,12 +27,12 @@ from my_ica import My_ica
 from treatment_pipeline import Treatment_pipeline
 
 
-
 class Pipeline:
 
 	def __init__(self) -> None:
 		self.lower_passband = 7
 		self.higher_passband = 80
+
 
 	def preprocessing_numerical_pipeline(self):
 		''' Create a nunerical pipeline
@@ -82,6 +82,18 @@ class Pipeline:
 		preprocessor = self.preprocessor_(numerical_features, categorical_features)
 		model = make_pipeline(preprocessor, SGDClassifier)
 		model.fit(X, y)
+		return model
+	
+
+def main():
+	pp = Pipeline()
+	numerical_pipeline = pp.preprocessing_numerical_pipeline
+	categorical_pipeline = pp.preprocessing_categorical_pipeline
+
+
+
+if __name__ == "__main__":
+	main()
 
 
 
