@@ -47,7 +47,7 @@ class Preprocessing:
 		#subjects = list(range(1, 110))
 		
 		#range2 for coding
-		subjects = list(range(1, 4))
+		subjects = list(range(1, 2))
 		all_raw_data =[]
 		raw = mne.io.read_raw_edf(base_url, preload=True) 
 
