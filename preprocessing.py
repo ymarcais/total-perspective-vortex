@@ -41,14 +41,14 @@ class Preprocessing:
 		return raw, events'''
 	
 	#  eegbci is a eeg dataset interface
-	def	edf_load(self, i, j ):
+	def	edf_load(self):
 		base_url = '/mnt/nfs/homes/ymarcais/sgoinfre/total-perspective-vortex/physionet.org/files/eegmmidb/1.0.0/S001/S001R01.edf'
 		runs = [[3, 4, 7, 8, 11, 12], [5, 6, 9, 10, 13, 14]]
 		#subjects = list(range(1, 110))
 		
 		#range2 for coding
 		subjects = list(range(1, 2))
-		all_raw_data =[]
+		raw_list =[]
 		raw = mne.io.read_raw_edf(base_url, preload=True) 
 
 		for subject in subjects:
@@ -57,14 +57,9 @@ class Preprocessing:
 				raw_fnames = [str(f) for f in raw_fnames]
 				
 				raw = mne.io.concatenate_raws([read_raw_edf(f, preload=True) for f in raw_fnames])
-				all_raw_data.append(raw)
-		return all_raw_data
+				raw_list.append(raw)
+		return raw_list
 				
-			
-		'''	raw.standardize()
-			montage = make_standard_montage("standard_1005")
-			raw.set_montage(montage)'''
-
 
 	#Change channel mapping format
 	def rename_existing_mapping(self, raw):
@@ -95,18 +90,18 @@ class Preprocessing:
 		return raw
 	
 	
-	def magnitude_normaliz(self, raw):
-		data = raw.get_data()
-		transposed_data = data.T
+	def magnitude_normaliz(self, data):
+		#data = raw.get_data()
+		#transposed_data = data.T
 
 		scaler = StandardScaler()
-		normalized_data = scaler.fit_transform(transposed_data)
+		normalized_data = scaler.fit_transform(data)
 
 		normalized_data = normalized_data.T
 		normalized_raw = mne.io.RawArray(normalized_data, raw.info)
 		return normalized_raw
 	
-	
+
 	#check NaN
 	def distribution_NaN(self, dataset):
 		count_NaN = pd.isna(dataset).sum()
@@ -170,7 +165,7 @@ class Preprocessing:
 		data = raw.get_data()
 		wavelet = 'db1'
 		coeffs = pywt.wavedec(data, wavelet)
-		reconstructed_data = pywt.waverec(coeffs, wavelet)
+		reconstructed_data = pywt.waverec(coeffs, wavelet, level=2)
 		wavelet_raw = mne.io.RawArray(reconstructed_data, raw.info)
 		wavelet_raw.set_annotations(raw.annotations)
 		print("wavelet info: ", len(wavelet_raw.annotations))
@@ -184,12 +179,12 @@ class Preprocessing:
 		return num_events
 	
 	#mother
-	def preprocessing_(self, i, j):
+	def preprocessing_(self):
 		lower_passband = 0
 		higher_passband = 60
 		results = [] 
 		try:
-			raw_list = self.edf_load(i, j)
+			raw_list = self.edf_load()
 		except FileNotFoundError as e:
 			print(str(e))
 			return
