@@ -8,7 +8,7 @@
   
   #Data
     - experimental protocol
-        https://physionet.org/content/eegmmidb/1.0.0/
+        https://physionet.org/content/eegmmidb/1.0.0/ 
     - loading data  
     <img src="./png/raw_sample_S001.png" alt="Alt text" title="Battle ship" style="display: inline-block; max-width: 20px">
     - eegbci give access to all data organised in different files
