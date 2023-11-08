@@ -49,15 +49,16 @@ class Preprocessing:
 		#range2 for coding
 		subjects = list(range(1, 2))
 		raw_list =[]
-		raw = mne.io.read_raw_edf(base_url, preload=True) 
+		
 
 		for subject in subjects:
 			for run in runs:
 				raw_fnames = eegbci.load_data(subject, run)
 				raw_fnames = [str(f) for f in raw_fnames]
-				
-				raw = mne.io.concatenate_raws([read_raw_edf(f, preload=True) for f in raw_fnames])
-				raw_list.append(raw)
+
+				raw_objects = [mne.io.read_raw_edf(f, preload=True) for f in raw_fnames]
+				raw_list.extend(raw_objects)
+
 		return raw_list
 				
 
@@ -72,8 +73,8 @@ class Preprocessing:
 				kind = self.capitalize_letter_at_index(ch_name, 1)
 			kind = kind.replace('..', '').replace('.', '')
 			channel_mapping[ch_name] = kind
-
-		n_channels = len(channel_mapping)
+			
+		n_channels = len(channel_mapping)	
 		ch_types = ['eeg'] * n_channels
 		info = mne.create_info(list(channel_mapping.values()), 1000, ch_types)
 		info = mne.pick_info(info, mne.pick_channels(info['ch_names'], include=list(channel_mapping.values())))
@@ -175,7 +176,7 @@ class Preprocessing:
 	def num_events(self, raw):
 		annotations = raw.annotations
 		num_events = len(annotations)
-		print("AAAAA num events:", num_events)
+		print("Num events:", num_events)
 		return num_events
 	
 	#mother
