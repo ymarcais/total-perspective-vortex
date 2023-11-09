@@ -47,7 +47,7 @@ class Preprocessing:
 		#subjects = list(range(1, 110))
 		
 		#range2 for coding
-		subjects = list(range(1, 2))
+		subjects = list(range(5, 8))
 		raw_list =[]
 		
 

@@ -3,6 +3,7 @@ import os
 import mne
 import matplotlib.pyplot as plt
 import pywt
+from mne.channels import DigMontage
 
 from sklearn.preprocessing import StandardScaler
 from sklearn.pipeline import make_pipeline
@@ -34,6 +35,7 @@ from sklearn.pipeline import make_union
 import mne
 
 class MNEFilterTransformer(BaseEstimator, TransformerMixin):
+
 	def __init__(self, sfreq=None, l_freq=7, h_freq=40):
 		self.lower_passband = l_freq
 		self.higher_passband = h_freq
@@ -54,6 +56,7 @@ class MNEFilterTransformer(BaseEstimator, TransformerMixin):
 		return filtered_data
 
 class Wavelet(BaseEstimator, TransformerMixin):
+
 	def __init__(self, raw=None) :
 		self.raw = raw
 
@@ -76,7 +79,9 @@ class Wavelet(BaseEstimator, TransformerMixin):
 
 		return wavelet_raw
 	
+	
 class Fourrier_Frequency_Transformation(BaseEstimator, TransformerMixin):
+
 	def __init__(self, raw=None) :
 		self.raw = raw
 
@@ -95,14 +100,17 @@ class Fourrier_Frequency_Transformation(BaseEstimator, TransformerMixin):
 	
 	
 class Ica_Comp(BaseEstimator, TransformerMixin):
+
 	def __init__(self, raw=None) :
 		self.raw = raw
+
 
 	def fit(self, X, y=None):
 		return self
 	
 	
 	def transform(self, X):
+
 		if isinstance(X, mne.io.BaseRaw):  # Check if X is an MNE Raw object
 			data = X.get_data()  # Get the raw data from the Raw object
 		else:
@@ -115,45 +123,60 @@ class Ica_Comp(BaseEstimator, TransformerMixin):
 		ica_result = ica.fit(raw_fft_result)
 		n_components = ica.n_components_
 		return ica_result
+	
 
 class Rename_existing_mapping(BaseEstimator, TransformerMixin):
+
 	def __init__(self, raw=None) :
 		self.raw = raw
 
-	def capitalize_letter_at_index(self, input_string, index):
-		if 0 <= index < len(input_string):
-			return input_string[:index] + input_string[index].upper() + input_string[index + 1:]
-		else:
-			return input_string
 
 	def fit(self, X, y=None):
 		return self
 	
+	
 	def transform(self, raw):
-		channel_mapping = {}
+		channel_mapping={}
+		'''expected_channel_64 = [
+								'Fp1', 'Fpz', 'Fp2',
+								'F7', 'F3', 'Fz', 'F4', 'F8',
+								'FC5', 'FC1', 'FC2', 'FC6',
+								'M1', 'T7', 'C3', 'Cz', 'C4', 'T8', 'M2',
+								'CP5', 'CP1', 'CP2', 'CP6',
+								'P7', 'P3', 'Pz', 'P4', 'P8',
+								'PO9', 'O1', 'Oz', 'O2', 'PO10',
+								'AF7', 'AF3', 'AF4', 'AF8',
+								'F5', 'F1', 'F2', 'F6',
+								'FC3', 'FCz', 'FC4',
+								'C5', 'C1', 'C2', 'C6',
+								'CP3', 'CPz', 'CP4',
+								'P5', 'P1', 'P2', 'P6',
+								'PO7', 'P09', 'Oz', 'O2', 'PO10'
+							]'''
+		
 		for channel_info in raw.info['chs']:
 			ch_name = channel_info['ch_name']
-			if ch_name[:2] in ['Cz','Fp', 'Fz', 'Pz', 'Oz', 'Iz']:
+			if ch_name in raw.info['chs']:
 				kind = ch_name
 			else:
-				kind = self.capitalize_letter_at_index(ch_name, 1)
-			kind = kind.replace('..', '').replace('.', '')
-		channel_mapping[ch_name] = kind
-		print("channel mapping", channel_mapping)
+				kind = ch_name.rstrip('.')
+				if kind == 'Fpz':
+					pass
+				else:
+					kind = kind.upper()
+				if kind[:2] == 'FP':
+					kind = 'Fp' + kind[2:].lower()
+				if kind.endswith('Z'):
+					kind = kind[:-1] + 'z'
+			
+			channel_mapping[ch_name] = kind
 		n_channels = len(channel_mapping)
-		print("n_channels", n_channels)
 		ch_types = ['eeg'] * n_channels
-		print("ch_types", ch_types)
 		info = mne.create_info(list(channel_mapping.values()), 1000, ch_types)
 		info = mne.pick_info(info, mne.pick_channels(info['ch_names'], include=list(channel_mapping.values())))
 
-		for old_channel, new_channel_type in channel_mapping.items():
-			if old_channel in info['ch_names']:
-				index = info['ch_names'].index(old_channel)
-				info['chs'][index]['kind'] = new_channel_type
-
 		raw.rename_channels(channel_mapping)
-		montage = make_standard_montage('standard_1020')
+		montage = mne.channels.make_standard_montage('standard_1020')
 		raw.set_montage(montage)
 		return raw
 
@@ -200,7 +223,6 @@ class Pipeline:
 											data_fft,
 											data_ica
 											)
-		
 		return numerical_pipeline
 
 
@@ -223,40 +245,37 @@ class Pipeline:
 				numerical pipelines
 				categorical pipelines'''
 		
-		categorical_features = self.preprocessing_categorical_pipeline()
+		#categorical_features = self.preprocessing_categorical_pipeline()
 		numerical_features = self.preprocessing_numerical_pipeline(raw)
 		
-		preporcessor = make_union(categorical_features, numerical_features)
+		#preporcessor = make_union(categorical_features, numerical_features)
 
-		return preporcessor
+		return numerical_features
 	
 	
 	def model(self):
-		
+				
 		try:
 			pp = Preprocessing()
 			raw_list = pp.edf_load()
-			print("raw_list", raw_list)
-			#event = pp.num_events(raw_list[0][0])
-			
+						
 		except FileNotFoundError as e:
 			print(str(e))
 			return
 		
 		models = []
+		event = np.array([])
 		for raw in raw_list:
-			print("raw_list", raw)
-			event = pp.num_events(raw)
-			event = np.array(event).reshape(-1)
-			print("event shape", event.shape)
+			events, event_id = mne.events_from_annotations(raw)
+			event_id_values = list(event_id.values())
+			events, event_id = mne.events_from_annotations(raw)
+			target = events[:, 2] 
 			sfreq_value = raw.info['sfreq'] 
-			print("XXX sfreq_value", sfreq_value)
 			preporcessor = self.preprocessor_(raw)
-			
 			model = make_pipeline(preporcessor, SGDClassifier())
-			print("sizeof channels:", raw.info['ch_names'])
-			model.fit(raw, event)
-			print("toto")
+			ica_data = raw.get_data()
+			print("ica_data", ica_data)
+			model.fit(ica_data, target)
 			models.append(model)
 		return model
 	
