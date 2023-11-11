@@ -67,7 +67,7 @@
 
   #Data stream classification in real time
 
-  # Ref;
+  #Ref:
     
     MRCCBU M/EEG analysis with MNE Python      :   https://www.youtube.com/watch?v=t-twhNqgfSY
     Machine Learnia   
