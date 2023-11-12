@@ -67,7 +67,7 @@
 
   #Data stream classification in real time
 
-    <img src="./png/flw_diagram.svg" alt="Alt text" title="Battle ship" style="display: inline-block; max-width: 20px">
+    <img src="./png/flow_diagram.svg" alt="Alt text" title="Battle ship" style="display: inline-block; max-width: 20px">
 
   #Ref:
     
