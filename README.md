@@ -71,6 +71,6 @@
     
     MRCCBU M/EEG analysis with MNE Python      :   https://www.youtube.com/watch?v=t-twhNqgfSY
     Machine Learnia   
-      PYTHON SKLEARN PRE-PROCESSING + PIPELINE :   https://www.youtube.com/watch?v=OGWwzm304Xs
+      PYTHON SKLEARN [PRE-PROCESSING + PIPELINE](https://www.youtube.com/watch?v=OGWwzm304Xs)
                       SKLEARN PIPELINE AVANCÉE :   https://www.youtube.com/watch?v=41mnga4ptso 
     
