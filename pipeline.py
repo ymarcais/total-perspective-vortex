@@ -28,11 +28,29 @@ from mne.preprocessing import ICA
 from sklearn.pipeline import Pipeline
 from mne import create_info
 
-
-
 from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.pipeline import make_union
 import mne
+
+'''
+
+
+ecg -> electro cardiogram
+ecg_projs, ecg_events = mne.preoporcessing.compute_proj_ecg(raw, n_grad=1, n_mag=1, n_egg=0, average=True)
+
+eog-> electro oculogram
+eog_projs, ecg_events = mne.preoporcessing.compute_proj_eog(raw, n_grad=1, n_mag=1, n_egg=1, average=True)
+
+projs = ecg_projs + eog_projs
+epochs.add_proj(projs)
+epochs_cleaned = epochs.copy().apply_proj()
+
+
+pipeline : standard + vectorize + logistic
+
+use: score = 'roc_auc'
+
+'''
 
 class MNEFilterTransformer(BaseEstimator, TransformerMixin):
 
@@ -179,6 +197,33 @@ class Rename_existing_mapping(BaseEstimator, TransformerMixin):
 		montage = mne.channels.make_standard_montage('standard_1020')
 		raw.set_montage(montage)
 		return raw
+	
+class ICAWrapper(BaseEstimator, TransformerMixin):
+    def __init__(self, n_components=0.95, random_state=None):
+        self.ica = ICA(n_components=n_components, random_state=random_state)
+
+    def fit(self, X, y=None):
+        self.ica.fit(X)
+        return self
+
+    def transform(self, X):
+        return self.ica.transform(X)
+
+class Ica_Comp(BaseEstimator, TransformerMixin):
+	def __init__(self, raw=None):
+		self.raw = raw
+		self.ica_wrapper = ICAWrapper()
+
+	def fit(self, X, y=None):
+		if not isinstance(X, mne.io.BaseRaw):
+			raise ValueError("Input must be an instance of MNE Raw, but got {}".format(type(X)))
+		
+		self.ica_wrapper.fit(X)
+		return self
+
+	def transform(self, X):
+		return self.ica_wrapper.transform(X)
+
 
 
 class Pipeline:
@@ -188,11 +233,100 @@ class Pipeline:
 		self.higher_passband = 79
 		self.raw=raw
 
+	
+	def set_ipochs_ica(self, raw, epochs):
+		''' We want to create new epochs for ica but keeping previous events selcted after filtering
+			Research shows better ICA results with l_freq = 1
+			We create un new epochs subset called epochs_selection'''
+		raw.filter(l_freq=1, h_freq=40)
+		epochs_selction =  epochs.selction
 
-	def resampling(self, sfreq=80):
-		'''Function to resample the raw data'''
+		events, events_id = mne.events_from_annotations(raw)
+		events = events[epochs_selction]
+
+		tmin, tmax = epochs.tmin, epochs.tmax
+		baseline = baseline
+		epochs_ica = mne.Epochs(raw,
+							event=events,
+							tmin=tmin,
+							tmax=tmax,
+							baseline=baseline,
+							preload=True
+							)
+		print("epochs_ica:", epochs_ica.info)
+		return epochs_ica
+		
+	def fit_ica(self, epochs_ica):
+		"n_components = 0,95 keeps 95% of the variance, and create an ica object from epochs_ica"
+		n_components = 0.95
+		method = 'picard'
+		max_iter = 500
+		fit_params =  dict(fastica_it=5)
+		random_state = 42
+
+		ica = mne.preprocessing.ICA(n_components = n_components,
+									max_pca_components=300,
+									method = method,
+									max_iter = max_iter,
+									fit_params =  fit_params,
+									random_state = 42
+									)
+		ica.fit(epochs_ica)
+		return ica
+	
+	def detect_ecg(self, raw, ica):
+		"detect electrocadiogram articats"
+		ecg_epochs = mne.preprocessing.create_ecg_epochs(raw, reject=None, baseline=(None, -0.2), tmin=-0.5, tmax=0.5)
+		
+		ecg_evocked = ecg_epochs.average()
+		ecg_inds, ecg_scores = ica.find_bad_ecg(ecg_epochs, method='ctps')
+		ecg_evocked = ecg_epochs.average()
+		return ecg_inds
+	
+	def detect_eog(self, raw, ica):
+		"detect electrocadiogram articats"
+		eog_epochs = mne.preprocessing.create_eog_epochs(raw, reject=None, baseline=(None, -0.2), tmin=-0.5, tmax=0.5)
+		
+		eog_evocked = eog_epochs.average()
+		eog_inds, ecg_scores = ica.find_bad_ecg(eog_epochs)
+		eog_evocked = eog_epochs.average()
+		return eog_inds
+	
+	def exclude_ecg_eog(self, raw, ica, epochs):
+		''' Now we have discovered components related to artifacts that we want to remove 
+			we apply ica to data previously generated, not to the epochs_ica'''
+		ecg_inds = self.detect_eog(raw, ica)
+		eog_inds = self.detect_eog(raw, ica)
+		components_to_exclude = ecg_inds + eog_inds
+		ica.exclude = components_to_exclude
+		epochs_cleaned = ica.apply(epochs.copy())
+		return epochs_cleaned
+
+
+
+
+
+
+
+
+
+		ecg -> electro cardiogram
+		ecg_projs, ecg_events = mne.preoporcessing.compute_proj_ecg(raw, n_grad=1, n_mag=1, n_egg=0, average=True)
+
+		eog-> electro oculogram
+		eog_projs, ecg_events = mne.preoporcessing.compute_proj_eog(raw, n_grad=1, n_mag=1, n_egg=1, average=True)
+
+		projs = ecg_projs + eog_projs
+		epochs.add_proj(projs)
+		epochs_cleaned = epochs.copy().apply_proj()
+
+
+
+
+
+	'''def resampling(self, sfreq=80):
 		resampling_transformer = FunctionTransformer(lambda raw: self.pp.resample(raw, sfreq))
-		return resampling_transformer
+		return resampling_transformer'''
 	
 
 	def preprocessing_numerical_pipeline(self, raw):
@@ -213,7 +347,7 @@ class Pipeline:
 		scaler = StandardScaler()
 		wavelet = Wavelet(raw)
 		data_fft = Fourrier_Frequency_Transformation()
-		data_ica = Ica_Comp(raw)
+		data_ica = Ica_Comp()
 		#lda_result = LDA(self)
 		
 		
@@ -244,9 +378,12 @@ class Pipeline:
 		''' preprocessor is a transformer using to pipelines:
 				numerical pipelines
 				categorical pipelines'''
-		
+		if not isinstance(raw, mne.io.BaseRaw):
+			raise ValueError("Rooo Input must be an instance of MNE Raw, but got {}".format(type(raw)))
 		#categorical_features = self.preprocessing_categorical_pipeline()
-		numerical_features = self.preprocessing_numerical_pipeline(raw)
+		ica_features_features = self.preprocessing_numerical_pipeline(raw)
+		numerical_features = ica_features_features.fit_transform(raw)
+
 		
 		#preporcessor = make_union(categorical_features, numerical_features)
 
@@ -273,9 +410,7 @@ class Pipeline:
 			sfreq_value = raw.info['sfreq'] 
 			preporcessor = self.preprocessor_(raw)
 			model = make_pipeline(preporcessor, SGDClassifier())
-			ica_data = raw.get_data()
-			print("ica_data", ica_data)
-			model.fit(ica_data, target)
+			model.fit(raw, target)
 			models.append(model)
 		return model
 	
