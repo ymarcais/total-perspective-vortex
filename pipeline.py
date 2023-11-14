@@ -113,7 +113,8 @@ class MyPipeline:
 		self.raw=raw
 
 	def raw_filtered(self, raw):
-		raw.filter(self.lower_passband, self.higher_passband)
+		'''Filter a subset of channels'''
+		raw = mne.filter.filter_data(raw, self.lower_passband, self.higher_passband)
 		return raw
 
 	def epochs(self, raw):
@@ -127,7 +128,8 @@ class MyPipeline:
 							event_id=event_id,
 							tmin=tmin,
 							tmax=tmax,
-							baseline=baseline)
+							baseline=baseline,
+							picks='eeg')
 		return epochs
 	
 	def epochs_ica(self, raw, epochs):
