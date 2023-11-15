@@ -31,25 +31,6 @@ from mne.decoding import Scaler,Vectorizer
 from sklearn.base import BaseEstimator, TransformerMixin
 import mne
 
-'''
-
-
-ecg -> electro cardiogram
-ecg_projs, ecg_events = mne.preporcessing.compute_proj_ecg(raw, n_grad=1, n_mag=1, n_egg=0, average=True)
-
-eog-> electro oculogram
-eog_projs, ecg_events = mne.preporcessing.compute_proj_eog(raw, n_grad=1, n_mag=1, n_egg=1, average=True)
-
-projs = ecg_projs + eog_projs
-epochs.add_proj(projs)
-epochs_cleaned = epochs.copy().apply_proj()
-
-
-pipeline : standard + vectorize + logistic
-
-use: score = 'roc_auc'
-
-'''
 class Rename_existing_mapping(BaseEstimator, TransformerMixin):
 
 	def __init__(self, raw=None) :
@@ -62,23 +43,7 @@ class Rename_existing_mapping(BaseEstimator, TransformerMixin):
 	
 	def transform(self, raw):
 		channel_mapping={}
-		'''expected_channel_64 = [
-								'Fp1', 'Fpz', 'Fp2',
-								'F7', 'F3', 'Fz', 'F4', 'F8',
-								'FC5', 'FC1', 'FC2', 'FC6',
-								'M1', 'T7', 'C3', 'Cz', 'C4', 'T8', 'M2',
-								'CP5', 'CP1', 'CP2', 'CP6',
-								'P7', 'P3', 'Pz', 'P4', 'P8',
-								'PO9', 'O1', 'Oz', 'O2', 'PO10',
-								'AF7', 'AF3', 'AF4', 'AF8',
-								'F5', 'F1', 'F2', 'F6',
-								'FC3', 'FCz', 'FC4',
-								'C5', 'C1', 'C2', 'C6',
-								'CP3', 'CPz', 'CP4',
-								'P5', 'P1', 'P2', 'P6',
-								'PO7', 'P09', 'Oz', 'O2', 'PO10'
-							]'''
-		
+				
 		for channel_info in raw.info['chs']:
 			ch_name = channel_info['ch_name']
 			if ch_name in raw.info['chs']:
@@ -97,7 +62,7 @@ class Rename_existing_mapping(BaseEstimator, TransformerMixin):
 			channel_mapping[ch_name] = kind
 		n_channels = len(channel_mapping)
 		ch_types = ['eeg'] * n_channels
-		info = mne.create_info(list(channel_mapping.values()), 1000, ch_types)
+		info = mne.create_info(list(channel_mapping.values()), 100, ch_types)
 		info = mne.pick_info(info, mne.pick_channels(info['ch_names'], include=list(channel_mapping.values())))
 
 		raw.rename_channels(channel_mapping)
@@ -110,7 +75,7 @@ class MyPipeline:
 		def classifier(self, epochs_cleaned):
 			n_splits = 5
 			scoring = 'roc_auc'
-			epochs_cleaned = epochs_cleaned.copy().pick_types(meg=False, eeg=True, eog=True)
+			epochs_cleaned = epochs_cleaned.copy().pick_types(meg=False, eeg=True, eog=False, exclude='bads')
 			X = epochs_cleaned.get_data()
 			y = epochs_cleaned.events[:, 2]
 			cv = StratifiedGroupKFold(n_splits=n_splits)
@@ -121,7 +86,7 @@ class MyPipeline:
 
 			print(f"CV scores: {scores}")
 			print(f'Mean ROC AUC = {roc_auc_mean:.3f} (SD = {roc_auc_std:.3f})')
-			return clf
+			return clf, roc_auc_mean
 
 		def model(self):
 			try:
@@ -132,6 +97,7 @@ class MyPipeline:
 				return
 
 			models = []
+			score = []
 
 			for raw in raw_list:
 				sfreq = raw.info['sfreq']
@@ -153,16 +119,14 @@ class MyPipeline:
 
 				# Create MNE Raw object from the denoised data
 				raw_denoised = mne.io.RawArray(denoised_data, raw.info)
-				print("XXXX raw denoised info", raw_denoised.info)
-
 				events, event_id = mne.events_from_annotations(raw, event_id=dict(T0=0, T1=1, T2=2))
-
-				print("event = :", events)
+				event_id_binary = {'T1': 0, 'T2': 1}
+				events, event_id = mne.events_from_annotations(raw, event_id=event_id_binary)
 
 				if len(events) == 0:
 					print("No events found. Skipping.")
 					continue
-				epochs = mne.Epochs(raw_denoised, events, tmin=-0.25, tmax=0.5, baseline=(None, 0), picks='eeg')
+				epochs = mne.Epochs(raw_denoised, events, tmin=-0.25, tmax=0.5, baseline=(None, 0), picks='eeg', preload=True)
 
 				# Optionally, you can still use ICA for additional artifact removal
 				ica = ICA(n_components=0.95, method='picard', max_iter=500)
@@ -171,9 +135,14 @@ class MyPipeline:
 
 				# Apply ICA to further clean the data
 				epochs_cleaned = ica.apply(epochs.copy())
-				self.classifier(epochs_cleaned)
+				_, roc_auc_mean = self.classifier(epochs_cleaned)
+				score.append(roc_auc_mean)
+				print("score", score)
 				models.append(epochs_cleaned)
-
+				del raw
+				#raw.close()
+			mean_score = np.mean(score)
+			print("mean score", mean_score)
 			return models
 	
 

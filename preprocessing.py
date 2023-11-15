@@ -47,7 +47,7 @@ class Preprocessing:
 		#subjects = list(range(1, 110))
 		
 		#range2 for coding
-		subjects = list(range(5, 8))
+		subjects = list(range(42, 43))
 		raw_list =[]
 		
 
@@ -58,6 +58,12 @@ class Preprocessing:
 
 				raw_objects = [mne.io.read_raw_edf(f, preload=True) for f in raw_fnames]
 				raw_list.extend(raw_objects)
+				print("raw_lsit", raw_list)
+
+				for raw_object in raw_objects:
+					raw_object.close()
+				del raw_fnames
+				del raw_object
 
 		return raw_list
 				
