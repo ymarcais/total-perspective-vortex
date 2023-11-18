@@ -4,7 +4,7 @@
   #Environment - conda activate tpv - 
   - numpy
   - pandas
-  - mne!=0
+  - mne!=0 
   
   #Data
     - experimental protocol
