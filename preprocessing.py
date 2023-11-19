@@ -127,14 +127,18 @@ class Preprocessing:
 	'''#frequency fourrier transform
 	def frequency_fourrier(self, raw):
 		return raw.apply_function(np.fft.fft, axis = 1)'''
-	def frequency_fourrier(self, raw):
-		data = raw.get_data()
+	def frequency_fourrier(self, data, raw):
+		#data = raw.get_data()
+		if data.ndim == 1:
+			data = data.reshape(1, -1)
+
+		
 		data_fft = np.fft.fft(data, axis=1)
 		data_fft_abs = np.abs(data_fft)
-		raw_fft_abs = mne.io.RawArray(data_fft_abs, raw.info)
+		info = mne.create_info(raw.info['ch_names'], raw.info['sfreq'], ch_types='eeg')
+		raw_fft_abs = mne.io.RawArray(data_fft_abs, info)
 		raw_fft_abs.set_annotations(raw.annotations)
-		#print("raw_fft_abs info: ", len(raw_fft_abs.annotations))
-		return raw_fft_abs, data_fft
+		return raw_fft_abs
 	
 	
 	#PSD : how the power of a signal is distributed across different frequencies.

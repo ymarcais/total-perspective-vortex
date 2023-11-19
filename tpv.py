@@ -1,5 +1,11 @@
 import numpy as np
 import os
+import re
+from io import StringIO
+import sys
+
+from CSP import CSP
+
 
 import mne
 import matplotlib.pyplot as plt
@@ -18,6 +24,7 @@ from sklearn.linear_model import SGDClassifier
 from sklearn.preprocessing import FunctionTransformer
 from mne.datasets import eegbci
 from mne.channels import _standard_montage_utils
+
 
 from preprocessing import Preprocessing
 from sklearn.impute import SimpleImputer
@@ -71,14 +78,25 @@ class Rename_existing_mapping(BaseEstimator, TransformerMixin):
 		raw.set_montage(montage)
 		return raw
 
-class MyPipeline:
+class RawEDF:
+    def __init__(self, filename):
+        self.filename = filename
 
-		def classifier(self, epochs_cleaned):
+
+    def __str__(self):
+        return f"RawEDF | {self.filename}), data loaded"
+		
+class MyPipeline:
+		def __init__(self):
+			pass
+
+		def classifier(self, epochs_cleaned, num_components):
 			all_scores = []
 			n_splits = 5
 			scoring = 'roc_auc'
 			epochs_cleaned = epochs_cleaned.copy().pick_types(meg=False, eeg=True, eog=False, exclude='bads')
 			X = epochs_cleaned.get_data()
+			print("X shape", X.shape)
 			n_splits = min(n_splits, len(X))
 			y = epochs_cleaned.events[:, 2]
 			n_splits = min(n_splits, len(y))
@@ -86,8 +104,10 @@ class MyPipeline:
 			n_splits = min(n_splits, len(class_counts) - 1)
 			groups = np.arange(len(epochs_cleaned))
 			cv = StratifiedGroupKFold(n_splits=n_splits)
+			csp = CSP(num_components)
 
 			for i, (train_index, test_index) in enumerate(cv.split(X, y, groups=groups)):
+				print(f"Debugging fold {i + 1}/{n_splits}...")
 				if n_splits < 2:
 					print("Skipping fold due to insufficient splits.")
 					return -1, -1
@@ -112,9 +132,12 @@ class MyPipeline:
 					if len(unique_classes_train) == 1:
 						print("  Warning: Only one class present in the training set.")
 					continue 
-
+			print("epochs_cleaned.info", epochs_cleaned.info)
 									
-			clf = make_pipeline(Scaler(epochs_cleaned.info), Vectorizer(), LogisticRegression())
+			clf = make_pipeline(Scaler(epochs_cleaned.info), Vectorizer(), LogisticRegression('l2'))
+			print("XX shape", X.shape)
+			print("Data type of X:", type(X))
+
 			scores = cross_val_score(clf, X=X, y=y, cv=cv, groups=groups, scoring=scoring)
 			all_scores.extend(scores)
 			if all_scores:
@@ -122,11 +145,14 @@ class MyPipeline:
 				roc_auc_std = round(np.std(all_scores), 3)
 
 
+			
 			print(f"CV scores: {scores}")
 			print(f'Mean ROC AUC = {roc_auc_mean:.3f} (SD = {roc_auc_std:.3f})')
+			
 			return clf, roc_auc_mean
 
 		def model(self):
+			filename_mean=[]
 			try:
 				pp = Preprocessing()
 				raw_list = pp.edf_load()
@@ -138,13 +164,12 @@ class MyPipeline:
 			score = []
 			
 
-			loop_counter = 0
 			for raw in raw_list:
-				loop_counter += 1
-				print("loop counter", loop_counter)
-				sfreq = raw.info['sfreq']
-							
-				raw.filter(l_freq=1, h_freq=40)
+				raw_edf_object = RawEDF(raw)
+				raw_string = str(raw_edf_object)
+				match = re.search(r'(S+\d+R\d+)\.edf', raw_string)
+				file_name = match.group(1)
+				raw.filter(l_freq=0.1, h_freq=40)
 
 				# Assuming your EEG channels are in ch_names
 				ch_names = raw.ch_names
@@ -158,7 +183,8 @@ class MyPipeline:
 					threshold = np.std(coeffs[-1]) * 2  # Adjust the threshold as needed
 					coeffs[1:] = (pywt.threshold(c, threshold, mode='soft') for c in coeffs[1:])
 					denoised_data[i, :] = pywt.waverec(coeffs, 'db1')
-					
+					#denoised_data[i, :] = pp.magnitude_normaliz(denoised_data[i, :])
+				
 				# Create MNE Raw object from the denoised data
 				raw_denoised = mne.io.RawArray(denoised_data, raw.info)
 				event_id = dict(T1=1, T2=2)
@@ -174,22 +200,38 @@ class MyPipeline:
 				
 
 				# Optionally, you can still use ICA for additional artifact removal
-				ica = ICA(n_components=0.98, method='picard', max_iter=500)
+				ica = ICA(n_components=0.98, method='picard', verbose=1)
+				original_stdout = sys.stdout
+				sys.stdout = StringIO()
 				ica.fit(epochs)
+				captured_output = sys.stdout.getvalue()
+				sys.stdout = original_stdout
+				print("XXXcapture output", captured_output)
+				matches = re.search(r"Selecting by explained variance: (\d+) components", captured_output)
+				num_components = int(matches.group(1))
+				print("XXXn_components", matches)
+
+				
 				ica.exclude = []  # Adjust based on your needs
+				
+				
 
 				# Apply ICA to further clean the data
 				epochs_cleaned = ica.apply(epochs.copy())
-				_, roc_auc_mean = self.classifier(epochs_cleaned)
+				_, roc_auc_mean = self.classifier(epochs_cleaned, num_components)
+				filename_mean.append({"file_name": file_name, "roc_auc_mean": roc_auc_mean})
+				
 				if roc_auc_mean == -1:
 					pass
 				else:
 					score.append(roc_auc_mean)
-				#print("score", score)
 				models.append(epochs_cleaned)
 				del raw
-				#raw.close()
+			
 			mean_score = round(np.mean(score), 3) * 100
+			for data in filename_mean:
+				print(f"File name: {data['file_name']}, roc_auc_mean: {data['roc_auc_mean']}\n")
+
 			print(f"Final mean score {mean_score}%")
 			return models
 	
