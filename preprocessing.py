@@ -11,6 +11,8 @@ import pywt
 from mne.channels import make_standard_montage
 
 
+
+
 #print(sklearn.__version__)
 
 #Preprocessing, parsing and formating
@@ -19,6 +21,7 @@ class Preprocessing:
 	def __init__(self):
 		self.event_ids=dict(T0=0, T1=1, T2=2)
 
+
 	#Change to capital letter the second string letter
 	def capitalize_letter_at_index(self, input_string, index):
 		if 0 <= index < len(input_string):
@@ -26,19 +29,6 @@ class Preprocessing:
 		else:
 			return input_string
 
-	#- i and j will increment number of directorhy and number of file
-	#- will need double loop to open directories and files
-	'''def	edf_load(self, i, j ):
-		base_url = 'physionet.org/files/eegmmidb/1.0.0/'
-		directory_number = 'S' + str(i).zfill(3)
-		file_number = 'S' + str(i).zfill(3) + 'R' + str(j).zfill(2) + '.edf'
-		data_raw_path = os.path.join(base_url, directory_number, file_number)
-		
-		raw.annotations.onset[1:] += [0.001 * i for i in range(1, len(raw.annotations.onset))]
-		events, _ = mne.events_from_annotations(raw)
-		#print("events:", events)
-		print("raw:", raw)
-		return raw, events'''
 	
 	#  eegbci is a eeg dataset interface
 	def	edf_load(self):
@@ -47,10 +37,9 @@ class Preprocessing:
 		#subjects = list(range(1, 110))
 		
 		#range2 for coding
-		subjects = list(range(1, 110))
+		subjects = list(range(3, 4))
 		raw_list =[]
 		
-
 		for subject in subjects:
 			for run in runs:
 				raw_fnames = eegbci.load_data(subject, run, path="/sgoinfre/goinfre/Perso/ymarcais/data_mne")
@@ -64,6 +53,7 @@ class Preprocessing:
 					continue
 				
 		return raw_list	
+	
 
 	#Change channel mapping format
 	def rename_existing_mapping(self, raw):
@@ -81,7 +71,7 @@ class Preprocessing:
 		ch_types = ['eeg'] * n_channels
 		info = mne.create_info(list(channel_mapping.values()), 1000, ch_types)
 		info = mne.pick_info(info, mne.pick_channels(info['ch_names'], include=list(channel_mapping.values())))
-		#print("info", info)
+		print("info", info)
 
 		for old_channel, new_channel_type in channel_mapping.items():
 			if old_channel in info['ch_names']:
@@ -121,7 +111,7 @@ class Preprocessing:
 	apply_function() is a method in MNE-Python used to apply a 
 	given function along a specified axis of the data'''
 	def resampling(self, raw):
-		return raw.resample(sfreq = 80)
+		return raw.resample(sfreq = 40)
 	
 
 	'''#frequency fourrier transform
@@ -189,7 +179,7 @@ class Preprocessing:
 	#mother
 	def preprocessing_(self):
 		lower_passband = 0
-		higher_passband = 60
+		higher_passband = 8
 		results = [] 
 		try:
 			raw_list = self.edf_load()
