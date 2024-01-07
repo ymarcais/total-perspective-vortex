@@ -105,7 +105,7 @@ class MyPipeline:
 		#Extract X list from epochs and convert to array
 		#Extract y from event
 		# len(X) = len(y)
-		def get_X_y(self, epochs, events):
+		def get_y(self, epochs, events):
 			X_ = []
 			X = []
 			y = []
@@ -113,7 +113,7 @@ class MyPipeline:
 			X = np.array(X_)
 			y = events[:, 2]
 			info = epochs.info
-			return X, y, info
+			return y
 
 		
 		#Split will be use in  cross validation
@@ -131,10 +131,12 @@ class MyPipeline:
 				check = True
 			else:
 				check = False
-
+			
 			for i, (train_index, test_index) in enumerate(cv.split(X, y, groups=groups)):
+				print("toto")
 				if check:
 					return False
+				
 				if len(train_index) == 0:
 					print("Skipping fold due to no training samples.")
 					check = True
@@ -163,11 +165,10 @@ class MyPipeline:
 			print("X_2D shape", X_2D.shape)
 			y = np.array(y)
 			y_flattened = y.ravel()
-
 			scores = cross_validate(clf, X=X_2D, y=y, cv=cv, groups=groups, scoring=scoring, verbose=True)
 			accuracy_mean = np.mean(scores['test_accuracy'])
 
-			if len(np.unique(y_flattened)) > 2:  # Check if it's a multiclass problem
+			if len(np.unique(y_flattened)) > 2:
 				clf_ovr = OneVsRestClassifier(clf)
 				clf_ovr.fit(X_2D, y_flattened)
 				y_scores = []
@@ -177,13 +178,12 @@ class MyPipeline:
 				y_scores = y_scores.reshape(-1, 1)
 				roc_auc_mean = roc_auc_score(y_flattened, y_scores_squeezed, multi_class='ovr', average='macro')
 			else:	
-				# For binary classification, use regular ROC AUC
 				y_scores = cross_val_score(clf, X, y_flattened, cv=cv, scoring=None)
 				roc_auc_mean = roc_auc_score(y_flattened, y_scores[:, 1])
 				print(f'Mean ROC AUC = {roc_auc_mean:.3f}')
 
-			
 			return accuracy_mean, roc_auc_mean, y_scores, y_flattened
+		
 		
 		def num_component(self, epochs):
 			epochs_data = epochs.get_data()
@@ -210,7 +210,7 @@ class MyPipeline:
 			models = []
 			score = []
 			X = []
-			X_reshape = []
+			W = []
 			try:
 				pp = Preprocessing()
 				raw_list = pp.edf_load()
@@ -254,56 +254,54 @@ class MyPipeline:
 				events, event_id = mne.events_from_annotations(raw, event_id=event_id)
 				class_labels = list(event_id.keys())
 				print("class_labels", class_labels)
-
 				
 				if len(events) == 0:
 					print("No events found. Skipping.")
 					continue
-				#picks = pick_types(raw.info, meg=False, eeg=True, stim=False, eog=False, exclude="bads")
-				epochs = Epochs(raw_denoised, events, event_id, tmin=0.09, tmax=0.48, baseline=(0.09, 0.48), picks='eeg', preload=True)
+				epochs = Epochs(raw_denoised, events, event_id, tmin=0.15, tmax=0.90, baseline=None, picks='eeg', preload=True)
 				n_components = self.num_component(epochs)
-				print("Yn_components", n_components)
-				ica, events = self.my.fast_ica(epochs, n_components=n_components)
-				
-				X, y, info = self.get_X_y(ica, events)
-				if not np.any(X):
+				epochs.filter(l_freq = 0.1, h_freq= 50, fir_design='firwin2',  filter_length=54)
+
+				W = my.fast_ica(epochs, n_components=n_components)
+
+
+				if not np.any(W):
 					print("Warning: No valid data after ICA. Skipping.")
 					continue
-				print("X shape", X.shape)
+				size = W.shape[1]
+				print("X_0 shape", W.shape)
+				W= W.reshape(size, -1)
+				print("X_1 shape", W.shape)
 
-				fastica_epochs = my.fast_ica_sklearn(epochs, n_components, max_iterations=500, tol=1e-5)
-				correlation_matrix = np.corrcoef(X, fastica_epochs)
-				correlation_coefficient = correlation_matrix[0, 1]				
+				extracted_components = my.fast_ica_mne(epochs, n_components, max_iterations=300, tol=1e-5)
+				extracted_components = extracted_components.reshape(size, -1)
+				correlation_matrix = np.corrcoef(W, extracted_components)
+				print("correlation_matrix", correlation_matrix)
+				correlation_coefficient = correlation_matrix[0, 1]		
+				print("correlation_coefficient", correlation_coefficient)		
 
-				X_reshape = X
-					
-				X_reshape = X_reshape.reshape(X.shape[0], X.shape[1] * X.shape[2])
-				print("XXX X_reshape shape", X_reshape.shape)
 				scalar = StandardScaler()
-				scalar.fit(X_reshape)
-				X_reshape = scalar.transform(X_reshape)
-				X_reshape.reshape(X.shape[0], X.shape[1], X.shape[2])
-				print("YYY X_reshape shape", X_reshape.shape)
+				scalar.fit(W)
+				W = scalar.transform(W)
+				y = self.get_y(epochs, events)
+				y = y.reshape(-1, 1)
+				W = W[:len(y), :]
 
-
-				n_splits = self.get_n_split(X, y)
+				n_splits = self.get_n_split(W, y)
 				split = []
 				split.append(n_splits)
 				cv = StratifiedGroupKFold(n_splits=n_splits)
 
-				groups = np.arange(len(X_reshape))
-				
-				check = self.check_size(n_splits, cv, X_reshape, y, groups)
+				groups = np.arange(len(W))
+				check = self.check_size(n_splits, cv, W, y, groups)
 				if check is not check:
 					continue
 				
 				class_scores = {}
-				#for class_label, class_epochs in class_epochs_list:
-				#n_components, ica_data_averaged = self.num_component(class_epochs)
 				n_components = int(n_components)
-				clf = self.classifier(X_reshape, y, n_components=n_components)
+				clf = self.classifier(W, y, n_components=n_components)
 
-				accuracy, roc_auc_mean, y_scores, y_flattened = self.print_scores(clf, X_reshape, y, groups, cv)
+				accuracy, roc_auc_mean, y_scores, y_flattened = self.print_scores(clf, W, y, groups, cv)
 				class_scores[file_name] = {"accuracy": accuracy}, {"roc_auc_mean": roc_auc_mean}
 				print(f"accuracy: {accuracy}, roc_auc_mean: {roc_auc_mean}")
 				score.append((accuracy, roc_auc_mean))
@@ -322,14 +320,7 @@ class MyPipeline:
 				if mean_score_roc < 0.3:
 					print("file name", file_name)
 					print("WARNING LOW SCORE", mean_score_roc )
-					print("n_components:", n_components)
-					print("X_reshape shape", X_reshape.shape)
-					print("X_reshape", X_reshape)
-					print("y", y)
-					print("y scores", y_scores)   ### Flatten y_scores?????
-					print("y scores shape", y_scores.shape)
-					print("y_flattened shape", y_flattened.shape)
-					#break
+					print("y scores", y_scores)
 			
 				all_scores_accuracy.append(mean_score_accuracy)
 				all_scores_roc_auc.append(mean_score_roc) 

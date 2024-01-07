@@ -37,7 +37,7 @@ class Preprocessing:
 		#subjects = list(range(1, 110))
 		
 		#range2 for coding
-		subjects = list(range(3, 4))
+		subjects = list(range(4, 5))
 		raw_list =[]
 		
 		for subject in subjects:
@@ -111,7 +111,7 @@ class Preprocessing:
 	apply_function() is a method in MNE-Python used to apply a 
 	given function along a specified axis of the data'''
 	def resampling(self, raw):
-		return raw.resample(sfreq = 40)
+		return raw.resample(sfreq = 200)
 	
 
 	'''#frequency fourrier transform
